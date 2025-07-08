@@ -1,0 +1,10 @@
+steps:
+- name: gcr.io/google.com/cloudsdktool/cloud-sdk
+  entrypoint: bash
+  args:
+    - -c
+    - |
+      gcloud run services add-iam-policy-binding cloudrun-pipeline \
+        --region=us-central1 \
+        --member="allUsers" \
+        --role="roles/run.invoker"
