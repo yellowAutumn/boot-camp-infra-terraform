@@ -1,0 +1,85 @@
+# cloudrun-service.yaml
+#
+# This file defines a Google Cloud Run service using the Knative Serving API.
+# It specifies the desired state of your containerized application on Cloud Run.
+
+apiVersion: serving.knative.dev/v1 # Specifies the Knative Serving API version
+kind: Service                    # Declares this resource as a Knative Service
+
+metadata:
+  name: cloudrun-pipeline        # REQUIRED: The unique name for your Cloud Run service.
+                                   # Updated to 'cloudrun-pipeline' as per your request.
+                                   # This name must be lowercase, alphanumeric, and can include hyphens.
+                                   # This is the name you would reference in Cloud Deploy's 'images' map.
+  annotations:
+    # Essential for making the service publicly accessible over the internet.
+    # When 'all' is set, Cloud Run automatically grants the 'roles/run.invoker'
+    # IAM role to 'allUsers', enabling unauthenticated invocations.
+    run.googleapis.com/ingress: all
+
+    # Optional: An annotation often added by Cloud Deploy to indicate the deployment source.
+    run.googleapis.com/client-name: cloud-deploy
+
+    # Optional: You can add other annotations for specific Cloud Run features or metadata.
+    # For example, for a custom domain mapping:
+    # run.googleapis.com/custom-domains: "api.example.com"
+
+spec:
+  template: # Defines the configuration for new revisions of the service
+    metadata:
+      # Optional: Annotations specific to the revision.
+      # This annotation allows the service to scale down to zero instances
+      # when there is no incoming traffic, helping to reduce costs.
+      annotations:
+        autoscaling.knative.dev/minScale: "0" # Minimum number of instances (0 allows idle shutdown)
+        # autoscaling.knative.dev/maxScale: "10" # Optional: Maximum number of instances (e.g., 10)
+        # autoscaling.knative.dev/cpu-limit: "1000m" # Optional: CPU limit (e.g., 1000m for 1 CPU core)
+        # autoscaling.knative.dev/memory-limit: "512Mi" # Optional: Memory limit (e.g., 512MiB)
+
+      name: my-example-service-001 # Optional: Explicit revision name. Cloud Run often generates this.
+                                   # It's usually best to omit this in the base manifest
+                                   # and let Cloud Run manage revision names.
+
+    spec:
+      containers: # Defines the container(s) that run your application
+      - image: gcr.io/pr-db-fn-1/temp-convert-webapp@sha256:419a8e44f74f475893007c3991be20cc0dc6b22eb5cab12477f16ba70a5d8a69 # REQUIRED: The full path to your container image.
+                                                                                              # Updated to your specified image.
+        ports:
+        - containerPort: 5000 # REQUIRED: The port number your application inside the container listens on.
+                              # This must match the port your application exposes (e.g., Flask, Node.js app).
+                              # Updated to 5000 as per your request.
+        
+        # Optional: Environment variables for your container
+        # env:
+        # - name: MY_ENV_VAR
+        #   value: "my-value"
+        # - name: ANOTHER_VAR
+        #   valueFrom:
+        #     secretKeyRef:
+        #       name: my-secret
+        #       key: secret-key-name
+
+        # Optional: Resource limits for the container
+        # resources:
+        #   limits:
+        #     cpu: "1000m"
+        #     memory: "512Mi"
+
+      # Optional: Service account for the Cloud Run service.
+      # If omitted, the default Compute Engine service account for the project is used.
+      # It's recommended to use a dedicated service account with least privilege.
+      serviceAccountName: terraform-service-account-2@pr-db-fn-1.iam.gserviceaccount.com # Use 'default' or a specific service account with Cloud Run Admin role
+      # Optional: Timeout for request processing (default is 5 minutes)
+      # timeoutSeconds: 300
+
+      # Optional: Max concurrent requests per instance (default depends on CPU, up to 1000)
+      # containerConcurrency: 80
+
+  # The 'traffic' block is typically managed by Cloud Run directly for traffic routing
+  # to different revisions (e.g., 100% to latest, or splitting traffic).
+  # It's generally omitted from the base manifest when deploying with Cloud Deploy,
+  # as Cloud Deploy manages the rollout to the latest revision.
+  # traffic:
+  # - revisionName: my-example-service-001
+  #   percent: 100
+  #   latestRevision: true # Set to true to always route traffic to the latest revision
